@@ -1,4 +1,5 @@
 import discord
+import asyncio
 from gtts import gTTS
 from discord.ext import commands
 
@@ -37,11 +38,16 @@ async def leave(ctx):
 @client.command()
 async def say(ctx):
     message = ctx.message.content[5:]
-    tts = gTTS(message)
+    usernick = ctx.message.author.display_name
+    tts = gTTS(usernick+" says " + message)
     tts.save('tts.mp3')
     try:
         vc = ctx.message.guild.voice_client
-        vc.play(discord.FFmpegPCMAudio('tts.mp3'))
+        try:
+            vc.play(discord.FFmpegPCMAudio('tts.mp3'))
+        except discord.errors.ClientException:
+            await ctx.send(f"I can't say two things at once (and I don't have an audio queue yet!), please try again when "
+                     "the current TTS message is done.\n If it's super long and spammy, try .leave .")
         return
     except(TypeError, AttributeError):
         try:
