@@ -4,17 +4,17 @@ from gtts import gTTS
 from discord.ext import commands
 
 TOKEN = 'YOURTOKENHERE'
-client = commands.Bot(command_prefix='.')
-client.remove_command('help')
+bot = commands.Bot(command_prefix='.')
+bot.remove_command('help')
 githublink = "https://github.com/TheUserCreated/python-discord-tts"
 
 
-@client.event
+@bot.event
 async def on_ready():
     print("Bot online")
 
 
-@client.command()
+@bot.command()
 async def join(ctx):
     try:
         channel = ctx.message.author.voice.channel
@@ -25,7 +25,7 @@ async def join(ctx):
         return
 
 
-@client.command()
+@bot.command()
 async def leave(ctx):
     try:
         await ctx.voice_client.disconnect()
@@ -35,7 +35,7 @@ async def leave(ctx):
         return
 
 
-@client.command()
+@bot.command()
 async def say(ctx):
     message = ctx.message.content[5:]
     usernick = ctx.message.author.display_name
@@ -59,7 +59,7 @@ async def say(ctx):
         return
 
 
-@client.command()
+@bot.command()
 async def help(ctx):
     embed = discord.Embed(title="Information and Commands", color=0x000000)
     embed.add_field(name=f"Commands", value="The commands are: \n .say \n .join \n .leave\n .help", inline=False)
@@ -68,4 +68,4 @@ async def help(ctx):
     await ctx.send(embed=embed)
 
 
-client.run(TOKEN)
+bot.run(TOKEN)
