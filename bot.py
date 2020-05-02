@@ -2,11 +2,14 @@ import discord
 from tempfile import TemporaryFile
 from gtts import gTTS
 from discord.ext import commands
+import asyncio
+from collections import deque
 
 TOKEN = 'YOURTOKENHERE'
 bot = commands.Bot(command_prefix='.')
 bot.remove_command('help')
 githublink = "https://github.com/TheUserCreated/python-discord-tts"
+message_queue = deque([])
 
 
 @bot.event
@@ -40,29 +43,32 @@ async def say(ctx):
     message = ctx.message.content[5:]
     usernick = ctx.message.author.display_name
     message = usernick + " says " + message
-    tts = gTTS(message)
-    f = TemporaryFile()
-    tts.write_to_fp(f)
-    f.seek(0)
     try:
         vc = ctx.message.guild.voice_client
-        try:
-            vc.play(discord.FFmpegPCMAudio(f,pipe=True))
-            f.close()
-        except discord.errors.ClientException:
-            await ctx.send(
-                f"I can't say two things at once (and I don't have an audio queue yet!), please try again when "
-                "the current TTS message is done.\n If it's super long and spammy, try .leave .")
-        return
+        if not vc.is_playing():
+            tts = gTTS(message)
+            f = TemporaryFile()
+            tts.write_to_fp(f)
+            f.seek(0)
+            vc.play(discord.FFmpegPCMAudio(f, pipe=True))
+        else:
+            message_queue.append(message)
+            while vc.is_playing():
+                await asyncio.sleep(0.1)
+            tts = gTTS(message_queue.popleft())
+            f = TemporaryFile()
+            tts.write_to_fp(f)
+            f.seek(0)
+            vc.play(discord.FFmpegPCMAudio(f, pipe=True))
     except(TypeError, AttributeError):
         try:
             channel = ctx.message.author.voice.channel
             vc = await channel.connect()
-            vc.play(discord.FFmpegPCMAudio(f,pipe=True))
-            f.close()
+            vc.play(discord.FFmpegPCMAudio(f, pipe=True))
         except(AttributeError, TypeError):
             await ctx.send("I'm not in a voice channel and neither are you!")
         return
+    f.close()
 
 
 @bot.command()
