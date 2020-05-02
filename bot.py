@@ -1,5 +1,5 @@
 import discord
-import asyncio
+from tempfile import TemporaryFile
 from gtts import gTTS
 from discord.ext import commands
 
@@ -39,21 +39,27 @@ async def leave(ctx):
 async def say(ctx):
     message = ctx.message.content[5:]
     usernick = ctx.message.author.display_name
-    tts = gTTS(usernick+" says " + message)
-    tts.save('tts.mp3')
+    message = usernick + " says " + message
+    tts = gTTS(message)
+    f = TemporaryFile()
+    tts.write_to_fp(f)
+    f.seek(0)
     try:
         vc = ctx.message.guild.voice_client
         try:
-            vc.play(discord.FFmpegPCMAudio('tts.mp3'))
+            vc.play(discord.FFmpegPCMAudio(f,pipe=True))
+            f.close()
         except discord.errors.ClientException:
-            await ctx.send(f"I can't say two things at once (and I don't have an audio queue yet!), please try again when "
-                     "the current TTS message is done.\n If it's super long and spammy, try .leave .")
+            await ctx.send(
+                f"I can't say two things at once (and I don't have an audio queue yet!), please try again when "
+                "the current TTS message is done.\n If it's super long and spammy, try .leave .")
         return
     except(TypeError, AttributeError):
         try:
             channel = ctx.message.author.voice.channel
             vc = await channel.connect()
-            vc.play(discord.FFmpegPCMAudio('tts.mp3'))
+            vc.play(discord.FFmpegPCMAudio(f,pipe=True))
+            f.close()
         except(AttributeError, TypeError):
             await ctx.send("I'm not in a voice channel and neither are you!")
         return
