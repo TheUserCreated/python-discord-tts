@@ -12,9 +12,17 @@ githublink = "https://github.com/TheUserCreated/python-discord-tts"
 message_queue = deque([])
 
 
+async def status_task():
+    while True:
+        game = discord.Game(f"In {len(bot.guilds)} servers.")
+        await bot.change_presence(status=discord.Status.online, activity=game)
+        await asyncio.sleep(30)
+
+
 @bot.event
 async def on_ready():
     print("Bot online")
+    bot.loop.create_task(status_task())
 
 
 @bot.command()
