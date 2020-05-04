@@ -12,8 +12,8 @@ bot = commands.Bot(command_prefix='.')
 bot.remove_command('help')
 githublink = "https://github.com/TheUserCreated/python-discord-tts"
 message_queue = deque([])
-db_pass = 'DBPASS'
-db_user = 'DBUSER'
+db_pass = ''
+db_user = ''
 
 
 async def status_task():
@@ -27,6 +27,13 @@ async def get_db_con():
     db = await asyncpg.connect(user=db_user, password=db_pass, database='postgres', host='127.0.0.1')
 
     return db
+
+
+async def make_guild_conf(guild):
+    db = await get_db_con()
+    await db.execute('''
+                    INSERT INTO guilds(id, whitelist,blacklist,blacklist_role,whitelist_role) VALUES($1, $2, $3,$4,$5)
+                ''', guild.id, False, False, 'none set', 'none set')
 
 
 @bot.command()
@@ -48,16 +55,27 @@ async def blacklist(ctx):
 async def make_databases(ctx):
     guild_list = bot.fetch_guilds()
     db = await get_db_con()
+    await db.execute('''
+            CREATE TABLE guilds(
+                id bigint PRIMARY KEY,
+                whitelist_role text,
+                blacklist_role text,
+                whitelist bool,
+                blacklist bool
+            )
+        ''')
     async for guild in guild_list:
-        await db.execute("""CREATE TABLE guilds_conf (blacklist bool)""")
-        ##TODO This is intended to make a place to store config items for each guild
-        ## if someone wants to help please do
-        ## i have no idea what im doing or how to use sql
-        ## the goal is to store for each guild whether or not the blacklist is enabled
-        ## whether or not the whitelist is enabled
-        ## and the blacklist role and whitelist role
-        ## whitelist role and blacklist role should be 0 or None if there is not one
-        
+        await db.execute('''
+                INSERT INTO guilds(id, whitelist,blacklist,blacklist_role,whitelist_role) VALUES($1, $2, $3,$4,$5)
+            ''', guild.id, False, False, 'none set', 'none set')
+    db.close()
+
+
+async def get_dbvalue(guild, value):
+    db = await get_db_con()
+    return await db.fetchval('''SELECT $2, count(*) AS "count" FROM "public"."guilds" WHERE id = 
+    $1 GROUP BY $2 ORDER BY $2  ''', guild.id, value)
+
 
 def insert_returns(body):
     # insert return stmt if the last expression is a expression statement
@@ -65,7 +83,7 @@ def insert_returns(body):
         body[-1] = ast.Return(body[-1].value)
         ast.fix_missing_locations(body[-1])
 
-    # for if statements, we insert returns into the body and the orelse
+    # for if statements, we insert returns into the body and the or else
     if isinstance(body[-1], ast.If):
         insert_returns(body[-1].body)
         insert_returns(body[-1].orelse)
@@ -145,6 +163,13 @@ async def join(ctx):
     except(TypeError, AttributeError):
         await ctx.send("Either you are not in a voice channel, or I can't see the channel!")
         return
+
+
+@bot.command()
+async def get_conf(ctx, value):
+    guild = ctx.message.guild
+    val = await get_dbvalue(guild, value)
+    await ctx.send(val)
 
 
 @bot.command()
