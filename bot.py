@@ -14,6 +14,8 @@ githublink = "https://github.com/TheUserCreated/python-discord-tts"
 message_queue = deque([])
 db_pass = ''
 db_user = ''
+table_name = ""
+config_options = ["whitelist", "blacklist", "blacklist_role", "whitelist_role"]
 
 
 async def status_task():
@@ -29,7 +31,14 @@ async def get_db_con():
     return db
 
 
-async def make_guild_conf(guild):
+async def update_config(guild, column, value):
+    db = await get_db_con()
+    await db.execute(f'UPDATE guilds SET {column} = $2 WHERE id = $1', guild.id, value)
+    await db.close()
+
+
+@bot.event
+async def on_guild_join(guild):
     db = await get_db_con()
     await db.execute('''
                     INSERT INTO guilds(id, whitelist,blacklist,blacklist_role,whitelist_role) VALUES($1, $2, $3,$4,$5)
@@ -38,16 +47,28 @@ async def make_guild_conf(guild):
 
 @bot.command()
 async def blacklist(ctx):
-    await ctx.send("Would you like to change the current blacklist status? Default is disabled.")
-    channel = ctx.message.channel
+    status = await get_conf(ctx.message.guild, "blacklist")
+    if status:
+        await ctx.send("Would you like to change the current blacklist status? It is currently enabled")
+    else:
+        await ctx.send("Would you like to change the current blacklist status? It is currently disabled.")
+    guild = ctx.message.guild
 
-    def check(m):
-        if m.content.lower() == "yes":
-            return True
-        else:
-            return False
-
-    msg = await bot.wait_for('message', check=check, timeout=10)
+    msg = await bot.wait_for('message', timeout=10)
+    msg = msg.content.lower()
+    if msg == "yes" and not status:
+        await ctx.send("You must select a blacklist role. Please type the exact name of your blacklist role."
+                       "(roles with spaces in their names may not work right now)")
+        try:
+            msg = await bot.wait_for('message', timeout=10)
+        except:
+            await ctx.send("Timed out, nothing has changed")
+            return
+        msg = msg.content
+        await update_config(guild, "blacklist_role", msg)
+        await update_config(guild, "blacklist", True)
+    if msg == "yes" and status:
+        await update_config(guild, "blacklist", False)
 
 
 @bot.command()
@@ -73,8 +94,12 @@ async def make_databases(ctx):
 
 async def get_dbvalue(guild, value):
     db = await get_db_con()
-    return await db.fetchval('''SELECT $2, count(*) AS "count" FROM "public"."guilds" WHERE id = 
-    $1 GROUP BY $2 ORDER BY $2  ''', guild.id, value)
+    val = None
+    for option in config_options:
+        if value == option:
+            val = await db.fetchval(f'SELECT {value} FROM guilds WHERE id = {guild.id}')
+    await db.close()
+    return val
 
 
 def insert_returns(body):
@@ -165,11 +190,8 @@ async def join(ctx):
         return
 
 
-@bot.command()
-async def get_conf(ctx, value):
-    guild = ctx.message.guild
-    val = await get_dbvalue(guild, value)
-    await ctx.send(val)
+async def get_conf(guild, value):
+    return await get_dbvalue(guild, value)
 
 
 @bot.command()
@@ -189,8 +211,26 @@ async def stop(ctx):  # just an alias for leave
 
 @bot.command()
 async def say(ctx):
+    can_speak = False
+    blacklist_status = await get_conf(ctx.message.guild, 'blacklist')
+    whitelist_status = await get_conf(ctx.message.guild, 'whitelist')
+    if not blacklist_status and not whitelist_status:
+        can_speak = True
     if ctx.message.author.voice is None:
         await ctx.send("You must be in a Voice Channel to use that command!")
+        return
+    if whitelist_status:
+        whitelist_role = await get_conf(ctx.message.guild, 'whitelist_role')
+        for role in ctx.message.author.roles:
+            if role.name == whitelist_role:
+                can_speak = True
+    if blacklist_status:
+        blacklist_role = await get_conf(ctx.message.guild, 'blacklist_role')
+        for role in ctx.message.author.roles:
+            if role.name == blacklist_role:
+                can_speak = False
+                await ctx.send("You are blacklisted in this guild!")
+    if not can_speak:
         return
     message = ctx.message.content[5:]
     usernick = ctx.message.author.display_name
