@@ -22,6 +22,6 @@ If the bot is currently speaking and someone issues another .say command, it is 
 
 Eval command for owner only
 
-.make_databases
+.blacklist
 
-Should make config databases for each guild bot is in, this is not done yet so don't use it. If you want to help please do.
+allows you to enable or disable blacklists, and set the blacklist role
