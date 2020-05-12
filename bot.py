@@ -5,7 +5,8 @@ import asyncpg
 import ast
 import discord
 from discord.ext import commands
-from gtts import gTTS
+from discord.ext.commands import has_permissions  # , MissingPermissions
+from aiogtts import aiogTTS as gTTS
 
 TOKEN = "YOURTOKENHERE"
 bot = commands.Bot(command_prefix='.')
@@ -14,8 +15,9 @@ githublink = "https://github.com/TheUserCreated/python-discord-tts"
 message_queue = deque([])
 db_pass = ''
 db_user = ''
-table_name = ""
+table_name = "guilds"
 config_options = ["whitelist", "blacklist", "blacklist_role", "whitelist_role"]
+invite_link = ""
 
 
 async def status_task():
@@ -46,6 +48,12 @@ async def on_guild_join(guild):
 
 
 @bot.command()
+async def invite(ctx):
+    await ctx.send(f"My invite link is {invite_link} !")
+
+
+@bot.command()
+@has_permissions(administrator=True)
 async def blacklist(ctx):
     status = await get_conf(ctx.message.guild, "blacklist")
     if status:
@@ -61,7 +69,7 @@ async def blacklist(ctx):
                        "(roles with spaces in their names may not work right now)")
         try:
             msg = await bot.wait_for('message', timeout=10)
-        except:
+        except asyncio.TimeoutError:
             await ctx.send("Timed out, nothing has changed")
             return
         msg = msg.content
@@ -73,7 +81,7 @@ async def blacklist(ctx):
 
 @bot.command()
 @commands.is_owner()
-async def make_databases(ctx):
+async def make_databases():
     guild_list = bot.fetch_guilds()
     db = await get_db_con()
     await db.execute('''
@@ -197,7 +205,7 @@ async def get_conf(guild, value):
 @bot.command()
 async def leave(ctx):
     try:
-        await ctx.voice_client.disconnect()
+        await ctx.voice_client.disconnect(force=True)
         return
     except(TypeError, AttributeError):
         await ctx.send("Can't disconnect from a voice channel when I'm not in one!")
@@ -238,25 +246,25 @@ async def say(ctx):
     try:
         vc = ctx.message.guild.voice_client
         if not vc.is_playing():
-            tts = gTTS(message)
+            tts = gTTS()
             f = TemporaryFile()
-            tts.write_to_fp(f)
+            await tts.write_to_fp(message, f)
             f.seek(0)
             vc.play(discord.FFmpegPCMAudio(f, pipe=True))
         else:
             message_queue.append(message)
             while vc.is_playing():
                 await asyncio.sleep(0.1)
-            tts = gTTS(message_queue.popleft())
+            tts = gTTS()
             f = TemporaryFile()
-            tts.write_to_fp(f)
+            await tts.write_to_fp(message_queue.popleft(), f)
             f.seek(0)
             vc.play(discord.FFmpegPCMAudio(f, pipe=True))
     except(TypeError, AttributeError):
         try:
-            tts = gTTS(message)
+            tts = gTTS()
             f = TemporaryFile()
-            tts.write_to_fp(f)
+            await tts.write_to_fp(message_queue.popleft(), f)
             f.seek(0)
             channel = ctx.message.author.voice.channel
             vc = await channel.connect()
