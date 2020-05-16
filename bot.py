@@ -1,3 +1,4 @@
+
 import asyncio
 from collections import deque
 from tempfile import TemporaryFile
@@ -5,8 +6,8 @@ import asyncpg
 import ast
 import discord
 from discord.ext import commands
-from discord.ext.commands import has_permissions  # , MissingPermissions
-from aiogtts import aiogTTS as gTTS
+from discord.ext.commands import has_permissions, MissingPermissions
+from gtts import gTTS
 
 TOKEN = "YOURTOKENHERE"
 bot = commands.Bot(command_prefix='.')
@@ -17,7 +18,7 @@ db_pass = ''
 db_user = ''
 table_name = "guilds"
 config_options = ["whitelist", "blacklist", "blacklist_role", "whitelist_role"]
-invite_link = ""
+invite_link = "https://discord.com/api/oauth2/authorize?client_id=352643007918374912&permissions=36718656&scope=bot"
 
 
 async def status_task():
@@ -246,25 +247,25 @@ async def say(ctx):
     try:
         vc = ctx.message.guild.voice_client
         if not vc.is_playing():
-            tts = gTTS()
+            tts = gTTS(message)
             f = TemporaryFile()
-            await tts.write_to_fp(message, f)
+            tts.write_to_fp(f)
             f.seek(0)
             vc.play(discord.FFmpegPCMAudio(f, pipe=True))
         else:
             message_queue.append(message)
             while vc.is_playing():
                 await asyncio.sleep(0.1)
-            tts = gTTS()
+            tts = gTTS(message_queue.popleft())
             f = TemporaryFile()
-            await tts.write_to_fp(message_queue.popleft(), f)
+            tts.write_to_fp(f)
             f.seek(0)
             vc.play(discord.FFmpegPCMAudio(f, pipe=True))
     except(TypeError, AttributeError):
         try:
-            tts = gTTS()
+            tts = gTTS(message)
             f = TemporaryFile()
-            await tts.write_to_fp(message_queue.popleft(), f)
+            tts.write_to_fp(f)
             f.seek(0)
             channel = ctx.message.author.voice.channel
             vc = await channel.connect()
