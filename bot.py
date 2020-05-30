@@ -279,7 +279,7 @@ async def say(ctx):
 @bot.command()
 async def help(ctx):
     embed = discord.Embed(title="Information and Commands", color=0x000000)
-    embed.add_field(name=f"Commands", value="**`.say <Phrase Here>`** (Says whatever into the current voice channel)\n **`.join`** (Joins the invokers voice channel)\n **`.leave`** (Leaves the current voice channel)\n **`.blacklist`** (Allows you to enable or disable blacklists)\n **`.help`** (Sends the commands for this bot)", inline=False)
+    embed.add_field(name=f"Commands", value="**`.say <Phrase Here>`** (Says whatever into the current voice channel)\n **`.join`** (Joins the invokers voice channel)\n **`.invite`** (Sends the link to invite me to your server)\n **`.leave`** (Leaves the current voice channel)\n **`.blacklist`** (Allows you to enable or disable blacklists)\n **`.help`** (Sends the commands for this bot)", inline=False)
     embed.add_field(name=f"Github Project Link",
                     value=f"This bot is open source at {githublink}!\n Go to it for more detailed help\n Please feel free to contribute", inline=True)
     await ctx.send(embed=embed)
