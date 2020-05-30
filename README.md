@@ -2,26 +2,24 @@
 
 This is a simple discord TTS bot that I made in one day
 I hope it's good, if you have any suggestions please give them!
-The commands are as follows:
 
-.join
+## Commands in the bot:
 
-(joins the invokers current voice channel, gets angry if they're not in one)
+### `.say <Phrase Here>
+Says whatever into the current voice channel the bot is connected to, if it is not in one then it joins the invokers current voice channel.
 
-.leave
+If the bot is currently speaking and someone issues another `.say` command, it will be queued and will play as soon as the previous phase has been spoken.
 
-(leaves the current voice channel, gets angry if it's not in one)
+### `.join`
+Joins the invokers voice channel, gets angry if you aren't in one.
 
-.say Your Phrase Here
+### `.leave`
+Leaves the current voice channel, gets angry if it's not in one.
 
-(says whatever you want in the current voice channel, if it is not in one then it joins the invokers current voice channel)
+This also clears the queue.
 
-If the bot is currently speaking and someone issues another .say command, it is queued and will play as soon as the previous is over.
+### `.eval_fn`
+Eval command for the bot's owner only.
 
-.eval_fn 
-
-Eval command for owner only
-
-.blacklist
-
-allows you to enable or disable blacklists, and set the blacklist role
+### `.blacklist`
+Allows you to enable or disable blacklists, and set the blacklist role.
