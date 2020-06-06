@@ -13,7 +13,6 @@ TOKEN = "YOURTOKENHERE"
 bot = commands.Bot(command_prefix='.')
 bot.remove_command('help')
 githublink = "https://github.com/TheUserCreated/python-discord-tts"
-message_queue = deque([])
 db_pass = ''
 db_user = ''
 table_name = "guilds"
@@ -220,6 +219,7 @@ async def stop(ctx):  # just an alias for leave
 
 @bot.command()
 async def say(ctx):
+    message_queue = deque([])
     can_speak = False
     blacklist_status = await get_conf(ctx.message.guild, 'blacklist')
     whitelist_status = await get_conf(ctx.message.guild, 'whitelist')
