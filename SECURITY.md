@@ -12,6 +12,6 @@ currently being supported with security updates.
 ## Reporting a Vulnerability
 
 To report a vulnerability please DM me on discord at Zalgo#1649 or make an issue on the github page
-If I do not respond in a timely manner please DM me on riot.im @zalgo:matrix.org
+If I do not respond in a timely manner please DM me on element @zalgo:matrix.org
 
 .
