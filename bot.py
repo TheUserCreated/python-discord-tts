@@ -1,4 +1,3 @@
-
 import asyncio
 from collections import deque
 from tempfile import TemporaryFile
@@ -13,8 +12,8 @@ TOKEN = "YOURTOKENHERE"
 bot = commands.Bot(command_prefix='.')
 bot.remove_command('help')
 githublink = "https://github.com/TheUserCreated/python-discord-tts"
-db_pass = ''
-db_user = ''
+db_pass = ""
+db_user = ""
 table_name = "guilds"
 config_options = ["whitelist", "blacklist", "blacklist_role", "whitelist_role"]
 invite_link = "https://discord.com/api/oauth2/authorize?client_id=352643007918374912&permissions=36718656&scope=bot"
@@ -54,29 +53,13 @@ async def invite(ctx):
 
 @bot.command()
 @has_permissions(administrator=True)
-async def blacklist(ctx):
-    status = await get_conf(ctx.message.guild, "blacklist")
-    if status:
-        await ctx.send("Would you like to change the current blacklist status? It is currently enabled")
-    else:
-        await ctx.send("Would you like to change the current blacklist status? It is currently disabled.")
+async def blacklist(ctx, role):
     guild = ctx.message.guild
-
-    msg = await bot.wait_for('message', timeout=10)
-    msg = msg.content.lower()
-    if msg == "yes" and not status:
-        await ctx.send("You must select a blacklist role. Please type the exact name of your blacklist role."
-                       "(roles with spaces in their names may not work right now)")
-        try:
-            msg = await bot.wait_for('message', timeout=10)
-        except asyncio.TimeoutError:
-            await ctx.send("Timed out, nothing has changed")
-            return
-        msg = msg.content
-        await update_config(guild, "blacklist_role", msg)
+    if role == "false" or role == "False":
+        await update_config(guild, "blacklist", "False")
+    else:
         await update_config(guild, "blacklist", True)
-    if msg == "yes" and status:
-        await update_config(guild, "blacklist", False)
+        await update_config(guild, "blacklist_role", role)
 
 
 @bot.command()
@@ -135,30 +118,6 @@ async def on_ready():
 @bot.command()
 @commands.is_owner()
 async def eval_fn(ctx, *, cmd):
-    """Evaluates input.
-
-    Input is interpreted as newline seperated statements.
-    If the last statement is an expression, that is the return value.
-
-    Usable globals:
-      - `bot`: the bot instance
-      - `discord`: the discord module
-      - `commands`: the discord.ext.commands module
-      - `ctx`: the invokation context
-      - `__import__`: the builtin `__import__` function
-
-    Such that `>eval 1 + 1` gives `2` as the result.
-
-    The following invokation will cause the bot to send the text '9'
-    to the channel of invokation and return '3' as the result of evaluating
-
-    >eval ```
-    a = 1 + 2
-    b = a * 2
-    await ctx.send(a + b)
-    a
-    ```
-    """
     fn_name = "_eval_expr"
 
     cmd = cmd.strip("` ")
@@ -220,26 +179,14 @@ async def stop(ctx):  # just an alias for leave
 @bot.command()
 async def say(ctx):
     message_queue = deque([])
-    can_speak = False
     blacklist_status = await get_conf(ctx.message.guild, 'blacklist')
-    whitelist_status = await get_conf(ctx.message.guild, 'whitelist')
-    if not blacklist_status and not whitelist_status:
-        can_speak = True
-    if ctx.message.author.voice is None:
-        await ctx.send("You must be in a Voice Channel to use that command!")
-        return
-    if whitelist_status:
-        whitelist_role = await get_conf(ctx.message.guild, 'whitelist_role')
-        for role in ctx.message.author.roles:
-            if role.name == whitelist_role:
-                can_speak = True
+    can_speak = True
     if blacklist_status:
         blacklist_role = await get_conf(ctx.message.guild, 'blacklist_role')
         for role in ctx.message.author.roles:
             if role.name == blacklist_role:
                 can_speak = False
-                await ctx.send("You are blacklisted in this guild!")
-    if not can_speak:
+    if can_speak == False:
         return
     message = ctx.message.content[5:]
     usernick = ctx.message.author.display_name
@@ -279,9 +226,12 @@ async def say(ctx):
 @bot.command()
 async def help(ctx):
     embed = discord.Embed(title="Information and Commands", color=0x000000)
-    embed.add_field(name=f"Commands", value="**`.say <Phrase Here>`** (Says whatever into the current voice channel)\n **`.join`** (Joins the invokers voice channel)\n **`.invite`** (Sends the link to invite me to your server)\n **`.leave`** (Leaves the current voice channel)\n **`.blacklist`** (Allows you to enable or disable blacklists)\n **`.help`** (Sends the commands for this bot)", inline=False)
+    embed.add_field(name=f"Commands",
+                    value="**`.say <Phrase Here>`** (Says whatever into the current voice channel)\n **`.join`** (Joins the invokers voice channel)\n **`.invite`** (Sends the link to invite me to your server)\n **`.leave`** (Leaves the current voice channel)\n **`.blacklist`** (Allows you to enable or disable blacklists)\n **`.help`** (Sends the commands for this bot)",
+                    inline=False)
     embed.add_field(name=f"Github Project Link",
-                    value=f"This bot is open source at {githublink}!\n Go to it for more detailed help\n Please feel free to contribute", inline=True)
+                    value=f"This bot is open source at {githublink} !\n Go to it for more detailed help\n Please feel free to contribute",
+                    inline=True)
     await ctx.send(embed=embed)
 
 
